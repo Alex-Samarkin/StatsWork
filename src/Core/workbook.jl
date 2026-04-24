@@ -14,6 +14,14 @@ function add_dataset!(wb::Workbook, name::Symbol, df)
     register_dataset!(wb.space, name, df)
 end
 
+function add_dataset!(wb::Workbook, name::Symbol, source::AbstractString)
+    df = safe_load(source)
+    isnothing(df) && return nothing
+
+    register_dataset!(wb.space, name, df)
+    return df
+end
+
 vars(wb::Workbook) = vars(wb.space)
 
 function close_workbook!(wb::Workbook)
