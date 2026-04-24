@@ -1,0 +1,30 @@
+# Julia
+Manifest.toml
+deps/
+logs/
+compiled/
+artifacts/
+scratchspaces/
+local/
+
+# IDE and OS files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Test and coverage output
+*.cov
+*.jl.cov
+*.jl.*.cov
+coverage/
+
+# Build and package artifacts
+*.tar
+*.tar.gz
+*.tgz
+*.gz
+*.bz2
+*.7z
+*.rar
+*.zip
