@@ -8,9 +8,13 @@ using Plots
 using Markdown
 
 include("Core/results.jl")
+include("Core/vector_store.jl")
 include("Core/variables.jl")
 include("Core/data_util.jl")
 include("Core/workbook.jl")
+include("Core/vector_math.jl")
+include("Core/dataset_commit.jl")
+include("Core/workspace_io.jl")
 
 # Future extension points. These methods are declared now so the package can
 # precompile before the corresponding modules are implemented.
@@ -26,6 +30,13 @@ export Workbook,
        safe_load,
        save_data,
        vars,
+       getvar,
+       calc!,
+       align_vectors,
+       store_vector!,
+       commit!,
+       save_workspace,
+       load_workspace,
        select_columns,
        analyze,
        plot_report,

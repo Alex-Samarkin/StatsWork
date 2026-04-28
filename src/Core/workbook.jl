@@ -12,6 +12,7 @@ end
 
 function add_dataset!(wb::Workbook, name::Symbol, df)
     register_dataset!(wb.space, name, df)
+    return df
 end
 
 function add_dataset!(wb::Workbook, name::Symbol, source::AbstractString)
@@ -23,6 +24,8 @@ function add_dataset!(wb::Workbook, name::Symbol, source::AbstractString)
 end
 
 vars(wb::Workbook) = vars(wb.space)
+
+getvar(wb::Workbook, var::Symbol) = getvar(wb.space, var)
 
 function close_workbook!(wb::Workbook)
     wb.closed = true
