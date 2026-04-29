@@ -20,15 +20,20 @@ include("Core/results.jl")
 include("Core/vector_store.jl")
 include("Core/variables.jl")
 include("Core/data_util.jl")
-include("Core/data_repair.jl")
 include("Core/workbook.jl")
 include("Core/vector_math.jl")
 include("Core/dataset_commit.jl")
 include("Core/workspace_io.jl")
 include("Core/graphics.jl")
-include("Core/descriptive_stats_analysis.jl")
-include("Core/integer_sequence_generator.jl")
-include("Core/random_integer_generator.jl")
+include("Core/gui_input.jl")
+
+include("Analyses/DataQuality/data_repair.jl")
+include("Analyses/Exploratory/descriptive_stats_analysis.jl")
+include("Analyses/Exploratory/single_variable_descriptive_analysis.jl")
+include("Analyses/DataGenerators/integer_sequence_generator.jl")
+include("Analyses/DataGenerators/random_integer_generator.jl")
+include("Analyses/DataGenerators/random_continuous_generator.jl")
+include("Analyses/DataGenerators/random_continuous_generator2.jl")
 
 using .DataRepair: diagnose,
                    DataQualityDiagnosis,
@@ -45,7 +50,15 @@ using .DataRepair: diagnose,
                    plot_error_summary,
                    plot_error_bars
 
+using .GUInput: GUIInput, input_int, input_float, select_option, select_options
+
 export Workbook,
+       GUInput,
+       GUIInput,
+       input_int,
+       input_float,
+       select_option,
+       select_options,
        open_workbook,
        close_workbook!,
        add_dataset!,
@@ -69,8 +82,11 @@ export Workbook,
        PlotSpec,
        BaseAnalysisResult,
        DescriptiveStatsAnalysis,
+       SingleVariableDescriptiveAnalysis,
        IntegerSequenceGeneratorAnalysis,
        RandomIntegerGeneratorAnalysis,
+       RandomContinuousGeneratorAnalysis,
+       RandomContinuousGenerator2Analysis,
        analysis_info,
        required_variables,
        produced_variables,
@@ -90,6 +106,7 @@ export Workbook,
        plot1,
        plot2,
        plot3,
+       plot4,
        analyze,
        plot_report,
        text_report,

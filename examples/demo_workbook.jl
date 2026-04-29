@@ -321,9 +321,144 @@ println("\n=== Random integer specification ===")
 show(SW.to_table(random_int_result; table=:specification); allrows=true, allcols=true)
 println()
 
-# 16. Rendering concrete plots from the result.
+# 16. Random continuous generator from a continuous distribution.
+# Схема та же, что у дискретного генератора, но распределения непрерывные:
+# normal, uniform, gamma, beta, lognormal, exponential и другие типовые
+# варианты из Distributions.jl. В графиках добавлен boxplot и общая панель
+# из scatterplot, histogram и boxplot.
+random_cont_analysis = SW.RandomContinuousGeneratorAnalysis(
+    :rand_norm;
+    distribution="normal",
+    parameters=Dict{Symbol, Any}(:mu => 10.0, :sigma => 2.0),
+    count=300,
+    seed=20260429,
+    namespace=:generated,
+    palette_name=:contrast
+)
+random_cont_result = SW.analyze(wb, random_cont_analysis)
+
+println("\n=== Random continuous variable ===")
+println(first(SW.getvar(wb, Symbol("generated.rand_norm")), 20))
+println("\n=== Random continuous summary ===")
+show(SW.to_table(random_cont_result); allrows=true, allcols=true)
+println()
+println("\n=== Random continuous specification ===")
+show(SW.to_table(random_cont_result; table=:specification); allrows=true, allcols=true)
+println()
+
+# 17. Special and mixed continuous generator.
+# Вторая версия генератора содержит более редкие распределения, усеченные
+# варианты и смеси. Пример ниже строит трехкомпонентную смесь нормальных
+# распределений, что удобно для проверки мультимодальных выборок.
+random_cont2_analysis = SW.RandomContinuousGenerator2Analysis(
+    :rand_mix3;
+    distribution="normalmixture3",
+    parameters=Dict{Symbol, Any}(
+        :mu1 => -4.0,
+        :sigma1 => 0.8,
+        :mu2 => 0.0,
+        :sigma2 => 1.0,
+        :mu3 => 3.0,
+        :sigma3 => 0.6,
+        :weight1 => 0.25,
+        :weight2 => 0.45
+    ),
+    count=400,
+    seed=20260430,
+    namespace=:generated,
+    palette_name=:colorful
+)
+random_cont2_result = SW.analyze(wb, random_cont2_analysis)
+
+println("\n=== Special continuous variable ===")
+println(first(SW.getvar(wb, Symbol("generated.rand_mix3")), 20))
+println("\n=== Special continuous summary ===")
+show(SW.to_table(random_cont2_result); allrows=true, allcols=true)
+println()
+println("\n=== Special continuous specification ===")
+show(SW.to_table(random_cont2_result; table=:specification); allrows=true, allcols=true)
+println()
+
+# 18. Detailed single-variable descriptive statistics.
+# Этот exploratory-анализ берет одну случайную величину, строит
+# вариационный ряд и считает подробные параметрические/непараметрические
+# характеристики. Вариационный ряд сохраняется как derived-переменная.
+single_var_analysis = SW.SingleVariableDescriptiveAnalysis(
+    Symbol("generated.rand_norm");
+    normal_overlay=true,
+    palette_name=:pastel
+)
+single_var_result = SW.analyze(wb, single_var_analysis)
+
+println("\n=== Single-variable descriptive summary ===")
+show(SW.to_table(single_var_result); allrows=true, allcols=true)
+println()
+println("\n=== Single-variable parametric characteristics ===")
+show(SW.to_table(single_var_result; table=:parametric); allrows=true, allcols=true)
+println()
+println("\n=== Single-variable quantiles ===")
+show(SW.to_table(single_var_result; table=:quantiles); allrows=true, allcols=true)
+println()
+println("\n=== Variation series preview ===")
+show(first(SW.to_table(single_var_result; table=:variation_series), 20); allrows=true, allcols=true)
+println()
+
+# 19. Detailed single-variable descriptive statistics for patient variables.
+# Теперь применяем тот же анализ к реальным переменным из patients_3500.csv:
+# росту `height_cm` и весу `weight_kg`. Пользователь может смотреть краткие
+# таблицы в консоли, а полные отчеты и все графики сохраняются в файлы.
+height_analysis = SW.SingleVariableDescriptiveAnalysis(
+    :height_cm;
+    variation_name=:height_cm_variation_series,
+    normal_overlay=true,
+    palette_name=:colorful
+)
+height_result = SW.analyze(wb, height_analysis)
+
+weight_analysis = SW.SingleVariableDescriptiveAnalysis(
+    :weight_kg;
+    variation_name=:weight_kg_variation_series,
+    normal_overlay=true,
+    palette_name=:contrast
+)
+weight_result = SW.analyze(wb, weight_analysis)
+
+println("\n=== Height descriptive summary ===")
+show(SW.to_table(height_result); allrows=true, allcols=true)
+println()
+println("\n=== Height parametric table ===")
+show(SW.to_table(height_result; table=:parametric); allrows=true, allcols=true)
+println()
+println("\n=== Height nonparametric table ===")
+show(SW.to_table(height_result; table=:nonparametric); allrows=true, allcols=true)
+println()
+println("\n=== Height quantiles table ===")
+show(SW.to_table(height_result; table=:quantiles); allrows=true, allcols=true)
+println()
+
+println("\n=== Weight descriptive summary ===")
+show(SW.to_table(weight_result); allrows=true, allcols=true)
+println()
+println("\n=== Weight parametric table ===")
+show(SW.to_table(weight_result; table=:parametric); allrows=true, allcols=true)
+println()
+println("\n=== Weight nonparametric table ===")
+show(SW.to_table(weight_result; table=:nonparametric); allrows=true, allcols=true)
+println()
+println("\n=== Weight quantiles table ===")
+show(SW.to_table(weight_result; table=:quantiles); allrows=true, allcols=true)
+println()
+
+for (label, result) in [("height_cm", height_result), ("weight_kg", weight_result)]
+    write("demo_patient_$(label)_single_variable_report.txt", SW.text_report(result; format=:markdown))
+    SW.save_report("demo_patient_$(label)_single_variable_report.md", result)
+    SW.save_report("demo_patient_$(label)_single_variable_report.html", result)
+    SW.save_report("demo_patient_$(label)_single_variable_report.xlsx", result)
+end
+
+# 20. Rendering concrete plots from the result.
 # Анализ не строит графики "на месте", а сохраняет их как `PlotSpec`.
-# Функции `plot1/plot2/plot3` показывают, как отдельный графический слой
+# Функции `plot1/plot2/plot3/plot4` показывают, как отдельный графический слой
 # может позднее материализовать эти спецификации в реальные объекты `Plots`.
 # Для генератора случайных целых:
 # - `plot1` -> scatterplot значений по индексу;
@@ -338,6 +473,48 @@ dashboard_plot = SW.plot3(random_int_result)
 savefig(scatter_plot, "demo_random_integer_scatter.png")
 savefig(histogram_plot, "demo_random_integer_histogram.png")
 savefig(dashboard_plot, "demo_random_integer_dashboard.png")
+
+# Для генератора непрерывных значений:
+# - `plot1` -> scatterplot;
+# - `plot2` -> histogram;
+# - `plot3` -> boxplot;
+# - `plot4` -> dashboard из трех графиков на одной панели.
+continuous_scatter_plot = SW.plot1(random_cont_result)
+continuous_histogram_plot = SW.plot2(random_cont_result)
+continuous_boxplot = SW.plot3(random_cont_result)
+continuous_dashboard_plot = SW.plot4(random_cont_result)
+
+savefig(continuous_scatter_plot, "demo_random_continuous_scatter.png")
+savefig(continuous_histogram_plot, "demo_random_continuous_histogram.png")
+savefig(continuous_boxplot, "demo_random_continuous_boxplot.png")
+savefig(continuous_dashboard_plot, "demo_random_continuous_dashboard.png")
+
+special_dashboard_plot = SW.plot4(random_cont2_result)
+savefig(special_dashboard_plot, "demo_random_continuous2_dashboard.png")
+
+single_histogram_plot = SW.plot1(single_var_result)
+single_histogram_boxplot = SW.plot2(single_var_result)
+single_qq_plot = SW.plot3(single_var_result)
+
+savefig(single_histogram_plot, "demo_single_variable_histogram.png")
+savefig(single_histogram_boxplot, "demo_single_variable_histogram_boxplot.png")
+savefig(single_qq_plot, "demo_single_variable_qq.png")
+
+height_histogram_plot = SW.plot1(height_result)
+height_histogram_boxplot = SW.plot2(height_result)
+height_qq_plot = SW.plot3(height_result)
+
+savefig(height_histogram_plot, "demo_patient_height_cm_histogram.png")
+savefig(height_histogram_boxplot, "demo_patient_height_cm_histogram_boxplot.png")
+savefig(height_qq_plot, "demo_patient_height_cm_qq.png")
+
+weight_histogram_plot = SW.plot1(weight_result)
+weight_histogram_boxplot = SW.plot2(weight_result)
+weight_qq_plot = SW.plot3(weight_result)
+
+savefig(weight_histogram_plot, "demo_patient_weight_kg_histogram.png")
+savefig(weight_histogram_boxplot, "demo_patient_weight_kg_histogram_boxplot.png")
+savefig(weight_qq_plot, "demo_patient_weight_kg_qq.png")
 
 SW.commit!(wb, :age_plus_visit_score; to=:data, align=:padmissing)
 SW.save_workspace(wb, "demo_workspace.jld2")
