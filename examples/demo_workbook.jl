@@ -12,6 +12,7 @@ Pkg.activate(joinpath(@__DIR__, ".."))
 using Revise
 using DataFrames
 using Statistics
+using Plots
 # `Revise` удобен в интерактивной разработке: он подхватывает изменения
 # в исходниках без необходимости полностью перезапускать сессию Julia.
 # `DataFrames` даёт табличные структуры данных, а `Statistics` подключает
@@ -247,6 +248,96 @@ println("\n=== Workbook log ===")
 println(wb.logs)
 # Лог рабочей книги полезен для воспроизводимости: по нему можно понять,
 # какие операции были выполнены, в каком порядке и с какими аргументами.
+
+# 13. Descriptive analysis over selected workbook variables.
+# Этот блок показывает базовый сценарий работы с системой анализов:
+# 1. сначала мы создаем объект-спецификацию анализа;
+# 2. затем исполняем его в контексте workbook через `analyze`;
+# 3. после этого используем единый API результата для просмотра таблиц
+#    и сохранения отчетов в разные форматы.
+# Такой двухшаговый подход удобен архитектурно: спецификация анализа
+# отделена от конкретного запуска над данными.
+desc = SW.DescriptiveStatsAnalysis([:age, :height_cm, :weight_kg, :sbp_mmhg, :dbp_mmhg])
+desc_result = SW.analyze(wb, desc)
+println("\n=== Analysis result object ===")
+println(desc_result)
+println("\n=== Analysis summary table ===")
+show(SW.to_table(desc_result); allrows=true, allcols=true)
+println()
+# Один и тот же результат можно сохранить в несколько текстовых и табличных
+# представлений. Здесь демонстрируется, что слой отчетности уже не зависит
+# от конкретного анализа: он работает с общим типом результата.
+SW.save_report("demo_descriptive_report.md", desc_result)
+SW.save_report("demo_descriptive_report.html", desc_result)
+SW.save_report("demo_descriptive_report.xlsx", desc_result)
+
+# 14. Deterministic integer sequence generator.
+# Этот анализ относится к генераторам данных и создает новую workbook-
+# переменную, а не только описывает уже существующие данные. Поэтому после
+# выполнения мы смотрим и сам созданный вектор, и несколько представлений
+# результата: краткую summary-таблицу и preview первых значений.
+sequence_analysis = SW.IntegerSequenceGeneratorAnalysis(
+    :sequence_10;
+    start=5,
+    step=3,
+    count=12,
+    namespace=:generated,
+    maximum=20
+)
+sequence_result = SW.analyze(wb, sequence_analysis)
+
+println("\n=== Generated sequence variable ===")
+println(SW.getvar(wb, Symbol("generated.sequence_10")))
+println("\n=== Sequence generator summary ===")
+show(SW.to_table(sequence_result); allrows=true, allcols=true)
+println()
+println("\n=== Sequence generator preview ===")
+show(SW.to_table(sequence_result; table=:preview); allrows=true, allcols=true)
+println()
+
+# 15. Random integer generator from a discrete distribution.
+# Здесь уже используется воспроизводимая случайная генерация из
+# `Distributions.jl`: имя распределения задается английским названием,
+# параметры передаются словарем, а `seed` фиксирует конкретную выборку.
+# Результат снова унифицирован: он хранит и созданную переменную, и summary,
+# и таблицу параметров генерации, и набор графических спецификаций.
+random_int_analysis = SW.RandomIntegerGeneratorAnalysis(
+    :rand_pois;
+    distribution="poisson",
+    parameters=Dict{Symbol, Any}(:lambda => 4.5),
+    count=200,
+    seed=20260429,
+    namespace=:generated,
+    palette_name=:colorful
+)
+random_int_result = SW.analyze(wb, random_int_analysis)
+
+println("\n=== Random integer variable ===")
+println(first(SW.getvar(wb, Symbol("generated.rand_pois")), 20))
+println("\n=== Random integer summary ===")
+show(SW.to_table(random_int_result); allrows=true, allcols=true)
+println()
+println("\n=== Random integer specification ===")
+show(SW.to_table(random_int_result; table=:specification); allrows=true, allcols=true)
+println()
+
+# 16. Rendering concrete plots from the result.
+# Анализ не строит графики "на месте", а сохраняет их как `PlotSpec`.
+# Функции `plot1/plot2/plot3` показывают, как отдельный графический слой
+# может позднее материализовать эти спецификации в реальные объекты `Plots`.
+# Для генератора случайных целых:
+# - `plot1` -> scatterplot значений по индексу;
+# - `plot2` -> histogram формы распределения;
+# - `plot3` -> dashboard, объединяющий оба графика.
+scatter_plot = SW.plot1(random_int_result)
+histogram_plot = SW.plot2(random_int_result)
+dashboard_plot = SW.plot3(random_int_result)
+
+# Сохраняем графики в PNG-файлы, чтобы демо показывало не только консольный
+# вывод и табличные отчеты, но и полный цикл построения визуализаций.
+savefig(scatter_plot, "demo_random_integer_scatter.png")
+savefig(histogram_plot, "demo_random_integer_histogram.png")
+savefig(dashboard_plot, "demo_random_integer_dashboard.png")
 
 SW.commit!(wb, :age_plus_visit_score; to=:data, align=:padmissing)
 SW.save_workspace(wb, "demo_workspace.jld2")

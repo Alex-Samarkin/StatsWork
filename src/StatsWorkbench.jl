@@ -6,6 +6,15 @@ using StatsBase
 using Distributions
 using Plots
 using Markdown
+using Random
+using XLSX
+
+# Base extension points are declared before includes so downstream files can
+# safely add methods to them during module loading.
+function analyze end
+function plot_report end
+function text_report end
+function save_report end
 
 include("Core/results.jl")
 include("Core/vector_store.jl")
@@ -16,6 +25,10 @@ include("Core/workbook.jl")
 include("Core/vector_math.jl")
 include("Core/dataset_commit.jl")
 include("Core/workspace_io.jl")
+include("Core/graphics.jl")
+include("Core/descriptive_stats_analysis.jl")
+include("Core/integer_sequence_generator.jl")
+include("Core/random_integer_generator.jl")
 
 using .DataRepair: diagnose,
                    DataQualityDiagnosis,
@@ -32,17 +45,11 @@ using .DataRepair: diagnose,
                    plot_error_summary,
                    plot_error_bars
 
-# Future extension points. These methods are declared now so the package can
-# precompile before the corresponding modules are implemented.
-function analyze end
-function plot_report end
-function text_report end
-function save_report end
-
 export Workbook,
        open_workbook,
        close_workbook!,
        add_dataset!,
+       add_result!,
        safe_load,
        save_data,
        vars,
@@ -54,6 +61,35 @@ export Workbook,
        save_workspace,
        load_workspace,
        select_columns,
+       AbstractAnalysis,
+       AbstractAnalysisResult,
+       FormulaSpec,
+       AnalysisInfo,
+       AnalysisTable,
+       PlotSpec,
+       BaseAnalysisResult,
+       DescriptiveStatsAnalysis,
+       IntegerSequenceGeneratorAnalysis,
+       RandomIntegerGeneratorAnalysis,
+       analysis_info,
+       required_variables,
+       produced_variables,
+       add_table!,
+       add_plot!,
+       result_tables,
+       result_plots,
+       result_calculations,
+       table_dataframe,
+       to_table,
+       to_markdown,
+       to_html,
+       available_plot_palettes,
+       default_plot_config,
+       render_result_plot,
+       render_result_plots,
+       plot1,
+       plot2,
+       plot3,
        analyze,
        plot_report,
        text_report,

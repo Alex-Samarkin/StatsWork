@@ -7,7 +7,7 @@ mutable struct Workbook
 end
 
 function open_workbook(name="Workbook")
-    Workbook(name, VariableSpace(), [], String[], false)
+    Workbook(name, VariableSpace(), AbstractAnalysisResult[], String[], false)
 end
 
 function add_dataset!(wb::Workbook, name::Symbol, df)
@@ -26,6 +26,12 @@ end
 vars(wb::Workbook) = vars(wb.space)
 
 getvar(wb::Workbook, var::Symbol) = getvar(wb.space, var)
+
+function add_result!(wb::Workbook, result::AbstractAnalysisResult)
+    push!(wb.results, result)
+    push!(wb.logs, "result <- " * string(typeof(result)))
+    return result
+end
 
 function close_workbook!(wb::Workbook)
     wb.closed = true
