@@ -158,6 +158,26 @@ function _render_plot(spec::PlotSpec)
             plot!(p, line_x, line_y; color=:black, linewidth=2, label="")
         end
         return p
+    elseif spec.kind == :confidence_interval
+        lower = get(spec.payload, :lower, missing)
+        upper = get(spec.payload, :upper, missing)
+        estimate = get(spec.payload, :estimate, missing)
+        label = String(get(spec.payload, :label, "Estimate"))
+
+        if lower === missing || upper === missing || estimate === missing
+            return plot(; options...)
+        end
+
+        delete!(options, :legend)
+        get!(options, :legend, false)
+        get!(options, :yticks, ([1], [label]))
+        get!(options, :ylim, (0.5, 1.5))
+        get!(options, :ylabel, "")
+
+        p = plot(; options...)
+        plot!(p, [Float64(lower), Float64(upper)], [1.0, 1.0]; linewidth=5, marker=:circle, label="")
+        scatter!(p, [Float64(estimate)], [1.0]; marker=:diamond, markersize=8, color=:firebrick3, label="")
+        return p
     elseif spec.kind == :heatmap
         x = get(spec.payload, :x, Any[])
         y = get(spec.payload, :y, Any[])

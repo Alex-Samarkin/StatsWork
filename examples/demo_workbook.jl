@@ -403,7 +403,26 @@ println("\n=== Variation series preview ===")
 show(first(SW.to_table(single_var_result; table=:variation_series), 20); allrows=true, allcols=true)
 println()
 
-# 19. Detailed single-variable descriptive statistics for patient variables.
+# 19. Separate confidence-interval analysis for one variable.
+# Интервальные оценки вынесены в отдельный модуль анализа. Он сам считает
+# точечные оценки среднего, дисперсии, стандартного отклонения и медианы,
+# а затем строит доверительные интервалы с заданной вероятностью `P`.
+# Здесь показан синтаксис с P=0.95; можно также написать P=95.
+interval_analysis = SW.SingleVariableIntervalEstimatesAnalysis(
+    Symbol("generated.rand_norm");
+    P=0.95,
+    palette_name=:pastel
+)
+interval_result = SW.analyze(wb, interval_analysis)
+
+println("\n=== Single-variable interval point estimates ===")
+show(SW.to_table(interval_result; table=:point_estimates); allrows=true, allcols=true)
+println()
+println("\n=== Single-variable confidence intervals ===")
+show(SW.to_table(interval_result; table=:confidence_intervals); allrows=true, allcols=true)
+println()
+
+# 20. Detailed single-variable descriptive statistics for patient variables.
 # Теперь применяем тот же анализ к реальным переменным из patients_3500.csv:
 # росту `height_cm` и весу `weight_kg`. Пользователь может смотреть краткие
 # таблицы в консоли, а полные отчеты и все графики сохраняются в файлы.
@@ -455,8 +474,11 @@ for (label, result) in [("height_cm", height_result), ("weight_kg", weight_resul
     SW.save_report("demo_patient_$(label)_single_variable_report.html", result)
     SW.save_report("demo_patient_$(label)_single_variable_report.xlsx", result)
 end
+SW.save_report("demo_single_variable_interval_estimates.md", interval_result)
+SW.save_report("demo_single_variable_interval_estimates.html", interval_result)
+SW.save_report("demo_single_variable_interval_estimates.xlsx", interval_result)
 
-# 20. Rendering concrete plots from the result.
+# 21. Rendering concrete plots from the result.
 # Анализ не строит графики "на месте", а сохраняет их как `PlotSpec`.
 # Функции `plot1/plot2/plot3/plot4` показывают, как отдельный графический слой
 # может позднее материализовать эти спецификации в реальные объекты `Plots`.
@@ -499,6 +521,18 @@ single_qq_plot = SW.plot3(single_var_result)
 savefig(single_histogram_plot, "demo_single_variable_histogram.png")
 savefig(single_histogram_boxplot, "demo_single_variable_histogram_boxplot.png")
 savefig(single_qq_plot, "demo_single_variable_qq.png")
+
+# Для отдельного модуля интервальных оценок:
+# - `plot1` -> доверительный интервал среднего;
+# - `plot2` -> доверительный интервал стандартного отклонения;
+# - `plot3` -> доверительный интервал медианы.
+interval_mean_plot = SW.plot1(interval_result)
+interval_std_plot = SW.plot2(interval_result)
+interval_median_plot = SW.plot3(interval_result)
+
+savefig(interval_mean_plot, "demo_single_variable_mean_ci.png")
+savefig(interval_std_plot, "demo_single_variable_std_ci.png")
+savefig(interval_median_plot, "demo_single_variable_median_ci.png")
 
 height_histogram_plot = SW.plot1(height_result)
 height_histogram_boxplot = SW.plot2(height_result)

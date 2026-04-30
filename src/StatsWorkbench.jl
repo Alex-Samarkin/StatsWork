@@ -30,6 +30,7 @@ include("Core/gui_input.jl")
 include("Analyses/DataQuality/data_repair.jl")
 include("Analyses/Exploratory/descriptive_stats_analysis.jl")
 include("Analyses/Exploratory/single_variable_descriptive_analysis.jl")
+include("Analyses/Exploratory/single_variable_interval_estimates_analysis.jl")
 include("Analyses/DataGenerators/integer_sequence_generator.jl")
 include("Analyses/DataGenerators/random_integer_generator.jl")
 include("Analyses/DataGenerators/random_continuous_generator.jl")
@@ -83,6 +84,7 @@ export Workbook,
        BaseAnalysisResult,
        DescriptiveStatsAnalysis,
        SingleVariableDescriptiveAnalysis,
+       SingleVariableIntervalEstimatesAnalysis,
        IntegerSequenceGeneratorAnalysis,
        RandomIntegerGeneratorAnalysis,
        RandomContinuousGeneratorAnalysis,
