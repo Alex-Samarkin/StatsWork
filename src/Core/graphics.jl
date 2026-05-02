@@ -1,3 +1,53 @@
+const _GADFLY_PKGID = Base.PkgId(Base.UUID("c91e804a-d5a3-530f-b6f0-dfbca275c004"), "Gadfly")
+
+function _gadfly_module()
+    if !haskey(Base.loaded_modules, _GADFLY_PKGID)
+        Base.require(_GADFLY_PKGID)
+    end
+    return Base.loaded_modules[_GADFLY_PKGID]
+end
+
+_gadfly_invoke(f, args...; kwargs...) = Base.invokelatest(f, args...; kwargs...)
+
+function _gadfly_palette(name::Symbol)
+    if name == :colorful
+        return [
+            "#1f77b4",
+            "#ff7f0e",
+            "#2ca02c",
+            "#d62728",
+            "#9467bd",
+            "#8c564b",
+            "#e377c2",
+            "#7f7f7f"
+        ]
+    elseif name == :pastel
+        return [
+            "#87cefa",
+            "#f08080",
+            "#90ee90",
+            "#dda0dd",
+            "#f0e68c",
+            "#ffa07a",
+            "#20b2aa",
+            "#b3b3b3"
+        ]
+    elseif name == :contrast
+        return [
+            "#000000",
+            "#1874cd",
+            "#cd2626",
+            "#006400",
+            "#cd6600",
+            "#551a8b",
+            "#cd1076",
+            "#666666"
+        ]
+    end
+
+    error("Unknown Gadfly palette: $name")
+end
+
 """
     available_plot_palettes()
 
@@ -183,6 +233,199 @@ function _render_plot(spec::PlotSpec)
         y = get(spec.payload, :y, Any[])
         z = get(spec.payload, :z, zeros(0, 0))
         return heatmap(x, y, z; options...)
+    elseif spec.kind == :gadfly_scatter
+        Gadfly = _gadfly_module()
+        df = get(spec.payload, :data, DataFrame())
+        mode = get(spec.payload, :mode, :index)
+        variable_label = String(get(spec.payload, :variable_label, "Value"))
+        group_label = String(get(spec.payload, :group_label, "Group"))
+        palette_name = Symbol(get(spec.payload, :palette_name, :colorful))
+        width = Int(get(spec.payload, :width, 1900))
+        height = Int(get(spec.payload, :height, 600))
+        palette_colors = _gadfly_palette(palette_name)
+
+        _gadfly_invoke(Gadfly.set_default_plot_size, width * Gadfly.px, height * Gadfly.px)
+
+        common_layers = Any[
+            Gadfly.Geom.point,
+            _gadfly_invoke(Gadfly.Guide.title, spec.title),
+            _gadfly_invoke(Gadfly.Guide.ylabel, variable_label),
+            _gadfly_invoke(
+                Gadfly.Theme;
+                default_color=palette_colors[1],
+                discrete_color_scale=_gadfly_invoke(Gadfly.Scale.color_discrete_manual, palette_colors...),
+                point_size=2.4 * Gadfly.mm,
+                key_position=(mode == :group ? :right : :none)
+            )
+        ]
+
+        if mode == :group
+            push!(common_layers, _gadfly_invoke(Gadfly.Guide.xlabel, "Observation"))
+            return _gadfly_invoke(
+                Gadfly.plot,
+                df,
+                x=:observation,
+                y=:value,
+                color=:group,
+                common_layers...
+            )
+        end
+
+        push!(common_layers, _gadfly_invoke(Gadfly.Guide.xlabel, "Observation"))
+        return _gadfly_invoke(
+            Gadfly.plot,
+            df,
+            x=:observation,
+            y=:value,
+            common_layers...
+        )
+    elseif spec.kind == :gadfly_histogram
+        Gadfly = _gadfly_module()
+        df = get(spec.payload, :data, DataFrame())
+        mode = get(spec.payload, :mode, :single)
+        variable_label = String(get(spec.payload, :variable_label, "Value"))
+        group_label = String(get(spec.payload, :group_label, "Group"))
+        kde = Bool(get(spec.payload, :kde, true))
+        palette_name = Symbol(get(spec.payload, :palette_name, :colorful))
+        width = Int(get(spec.payload, :width, 1900))
+        height = Int(get(spec.payload, :height, 600))
+        palette_colors = _gadfly_palette(palette_name)
+
+        _gadfly_invoke(Gadfly.set_default_plot_size, width * Gadfly.px, height * Gadfly.px)
+
+        if mode == :group
+            histogram_layer = _gadfly_invoke(
+                Gadfly.layer,
+                df,
+                x=:value,
+                color=:group,
+                alpha=fill(0.45, nrow(df)),
+                _gadfly_invoke(Gadfly.Geom.histogram; position=:identity, density=kde)
+            )
+
+            elements = Any[
+                histogram_layer,
+                _gadfly_invoke(Gadfly.Guide.title, spec.title),
+                _gadfly_invoke(Gadfly.Guide.xlabel, variable_label),
+                _gadfly_invoke(Gadfly.Guide.ylabel, kde ? "Density" : "Count"),
+                _gadfly_invoke(
+                    Gadfly.Theme;
+                    default_color=palette_colors[1],
+                    discrete_color_scale=_gadfly_invoke(Gadfly.Scale.color_discrete_manual, palette_colors...),
+                    point_size=2.4 * Gadfly.mm,
+                    key_position=:right
+                )
+            ]
+
+            if kde
+                density_layer = _gadfly_invoke(
+                    Gadfly.layer,
+                    df,
+                    x=:value,
+                    color=:group,
+                    _gadfly_invoke(Gadfly.Geom.density)
+                )
+                push!(elements, density_layer)
+            end
+
+            return _gadfly_invoke(Gadfly.plot, elements...)
+        end
+
+        histogram_layer = _gadfly_invoke(
+            Gadfly.layer,
+            df,
+            x=:value,
+            _gadfly_invoke(Gadfly.Geom.histogram; density=kde)
+        )
+
+        elements = Any[
+            histogram_layer,
+            _gadfly_invoke(Gadfly.Guide.title, spec.title),
+            _gadfly_invoke(Gadfly.Guide.xlabel, variable_label),
+            _gadfly_invoke(Gadfly.Guide.ylabel, kde ? "Density" : "Count"),
+            _gadfly_invoke(
+                Gadfly.Theme;
+                default_color=palette_colors[1],
+                key_position=:none
+            )
+        ]
+
+        if kde
+            density_layer = _gadfly_invoke(
+                Gadfly.layer,
+                df,
+                x=:value,
+                _gadfly_invoke(Gadfly.Geom.density)
+            )
+            push!(elements, density_layer)
+        end
+
+        return _gadfly_invoke(Gadfly.plot, elements...)
+    elseif spec.kind == :gadfly_boxplot
+        Gadfly = _gadfly_module()
+        df = get(spec.payload, :data, DataFrame())
+        means_df = get(spec.payload, :means, DataFrame())
+        variable_label = String(get(spec.payload, :variable_label, "Value"))
+        palette_name = Symbol(get(spec.payload, :palette_name, :colorful))
+        width = Int(get(spec.payload, :width, 1900))
+        height = Int(get(spec.payload, :height, 600))
+        variant = Symbol(get(spec.payload, :variant, :boxplot_mean))
+        mode = get(spec.payload, :mode, :single)
+        palette_colors = _gadfly_palette(palette_name)
+
+        _gadfly_invoke(Gadfly.set_default_plot_size, width * Gadfly.px, height * Gadfly.px)
+
+        use_color = mode == :group
+        key_position = use_color ? :right : :none
+
+        elements = Any[
+            _gadfly_invoke(Gadfly.Guide.title, spec.title),
+            _gadfly_invoke(Gadfly.Guide.xlabel, "Group"),
+            _gadfly_invoke(Gadfly.Guide.ylabel, variable_label),
+            _gadfly_invoke(
+                Gadfly.Theme;
+                default_color=palette_colors[1],
+                discrete_color_scale=_gadfly_invoke(Gadfly.Scale.color_discrete_manual, palette_colors...),
+                point_size=2.2 * Gadfly.mm,
+                key_position=key_position
+            )
+        ]
+
+        if variant == :boxplot_violin
+            violin_layer = use_color ?
+                _gadfly_invoke(Gadfly.layer, df, x=:group, y=:value, color=:group, Gadfly.Geom.violin) :
+                _gadfly_invoke(Gadfly.layer, df, x=:group, y=:value, Gadfly.Geom.violin)
+            push!(elements, violin_layer)
+        end
+
+        boxplot_layer = use_color ?
+            _gadfly_invoke(Gadfly.layer, df, x=:group, y=:value, color=:group, Gadfly.Geom.boxplot) :
+            _gadfly_invoke(Gadfly.layer, df, x=:group, y=:value, Gadfly.Geom.boxplot)
+        push!(elements, boxplot_layer)
+
+        if variant == :boxplot_points
+            points_layer = use_color ?
+                _gadfly_invoke(Gadfly.layer, df, x=:group, y=:value, color=:group, Gadfly.Geom.beeswarm) :
+                _gadfly_invoke(Gadfly.layer, df, x=:group, y=:value, Gadfly.Geom.beeswarm)
+            push!(elements, points_layer)
+        end
+
+        mean_layer = _gadfly_invoke(
+            Gadfly.layer,
+            means_df,
+            x=:group,
+            y=:mean,
+            _gadfly_invoke(
+                Gadfly.Theme;
+                default_color="#b22222",
+                point_size=3.0 * Gadfly.mm,
+                key_position=:none
+            ),
+            Gadfly.Geom.point
+        )
+        push!(elements, mean_layer)
+
+        return _gadfly_invoke(Gadfly.plot, elements...)
     elseif spec.kind == :dashboard
         # Dashboard — это композиция уже подготовленных дочерних PlotSpec.
         # Тем самым сложные визуализации можно собирать из простых кирпичиков.

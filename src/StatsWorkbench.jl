@@ -28,9 +28,13 @@ include("Core/graphics.jl")
 include("Core/gui_input.jl")
 
 include("Analyses/DataQuality/data_repair.jl")
+include("Analyses/DataTransform/auto_recode_analysis.jl")
 include("Analyses/Exploratory/descriptive_stats_analysis.jl")
 include("Analyses/Exploratory/single_variable_descriptive_analysis.jl")
 include("Analyses/Exploratory/single_variable_interval_estimates_analysis.jl")
+include("Analyses/Graphics/scatterplot_analysis.jl")
+include("Analyses/Graphics/histogram_analysis.jl")
+include("Analyses/Graphics/boxplot_analysis.jl")
 include("Analyses/DataGenerators/integer_sequence_generator.jl")
 include("Analyses/DataGenerators/random_integer_generator.jl")
 include("Analyses/DataGenerators/random_continuous_generator.jl")
@@ -82,9 +86,13 @@ export Workbook,
        AnalysisTable,
        PlotSpec,
        BaseAnalysisResult,
+       AutoRecodeAnalysis,
        DescriptiveStatsAnalysis,
        SingleVariableDescriptiveAnalysis,
        SingleVariableIntervalEstimatesAnalysis,
+       ScatterplotAnalysis,
+       HistogramAnalysis,
+       BoxplotAnalysis,
        IntegerSequenceGeneratorAnalysis,
        RandomIntegerGeneratorAnalysis,
        RandomContinuousGeneratorAnalysis,
