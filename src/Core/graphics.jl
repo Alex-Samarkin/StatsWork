@@ -48,6 +48,23 @@ function _gadfly_palette(name::Symbol)
     error("Unknown Gadfly palette: $name")
 end
 
+function _gadfly_tint(color::AbstractString, amount::Real)
+    startswith(color, "#") && ncodeunits(color) == 7 || return color
+    mix = clamp(float(amount), 0.0, 1.0)
+    red = parse(Int, color[2:3], base=16)
+    green = parse(Int, color[4:5], base=16)
+    blue = parse(Int, color[6:7], base=16)
+    tinted_red = round(Int, red + (255 - red) * mix)
+    tinted_green = round(Int, green + (255 - green) * mix)
+    tinted_blue = round(Int, blue + (255 - blue) * mix)
+    return string(
+        "#",
+        uppercase(string(tinted_red, base=16, pad=2)),
+        uppercase(string(tinted_green, base=16, pad=2)),
+        uppercase(string(tinted_blue, base=16, pad=2))
+    )
+end
+
 """
     available_plot_palettes()
 
@@ -373,6 +390,10 @@ function _render_plot(spec::PlotSpec)
         variant = Symbol(get(spec.payload, :variant, :boxplot_mean))
         mode = get(spec.payload, :mode, :single)
         palette_colors = _gadfly_palette(palette_name)
+        violin_palette = [_gadfly_tint(color, 0.58) for color in palette_colors]
+        boxplot_palette = [_gadfly_tint(color, 0.30) for color in palette_colors]
+        point_palette = [_gadfly_tint(color, 0.42) for color in palette_colors]
+        outline_color = "#2b2b2b"
 
         _gadfly_invoke(Gadfly.set_default_plot_size, width * Gadfly.px, height * Gadfly.px)
 
@@ -385,31 +406,105 @@ function _render_plot(spec::PlotSpec)
             _gadfly_invoke(Gadfly.Guide.ylabel, variable_label),
             _gadfly_invoke(
                 Gadfly.Theme;
-                #
-                alphas=[0.45],
-                default_color=palette_colors[1],
-                discrete_color_scale=_gadfly_invoke(Gadfly.Scale.color_discrete_manual, palette_colors...),
-                point_size=1.4 * Gadfly.mm,
+                default_color=boxplot_palette[1],
+                discrete_color_scale=_gadfly_invoke(Gadfly.Scale.color_discrete_manual, boxplot_palette...),
+                point_size=1.0 * Gadfly.mm,
+                highlight_width=0.35 * Gadfly.mm,
+                discrete_highlight_color=_->outline_color,
+                boxplot_spacing=0.2 * Gadfly.mm,
                 key_position=key_position
             )
         ]
 
         if variant == :boxplot_violin
             violin_layer = use_color ?
-                           _gadfly_invoke(Gadfly.layer, df, x=:group, y=:value, color=:group, Gadfly.Geom.violin) :
-                           _gadfly_invoke(Gadfly.layer, df, x=:group, y=:value, Gadfly.Geom.violin)
+                           _gadfly_invoke(
+                               Gadfly.layer,
+                               df,
+                               x=:group,
+                               y=:value,
+                               color=:group,
+                               _gadfly_invoke(
+                                   Gadfly.Theme;
+                                   default_color=violin_palette[1],
+                                   discrete_color_scale=_gadfly_invoke(Gadfly.Scale.color_discrete_manual, violin_palette...),
+                                   boxplot_spacing=0.2 * Gadfly.mm,
+                                   key_position=:none
+                               ),
+                               Gadfly.Geom.violin
+                           ) :
+                           _gadfly_invoke(
+                               Gadfly.layer,
+                               df,
+                               x=:group,
+                               y=:value,
+                               _gadfly_invoke(
+                                   Gadfly.Theme;
+                                   default_color=violin_palette[1],
+                                   boxplot_spacing=0.2 * Gadfly.mm,
+                                   key_position=:none
+                               ),
+                               Gadfly.Geom.violin
+                           )
             push!(elements, violin_layer)
         end
 
         boxplot_layer = use_color ?
-                        _gadfly_invoke(Gadfly.layer, df, x=:group, y=:value, color=:group, Gadfly.Geom.boxplot) :
-                        _gadfly_invoke(Gadfly.layer, df, x=:group, y=:value, Gadfly.Geom.boxplot)
+                        _gadfly_invoke(
+                            Gadfly.layer,
+                            df,
+                            x=:group,
+                            y=:value,
+                            color=:group,
+                            variant == :boxplot_points ?
+                                _gadfly_invoke(Gadfly.Geom.boxplot; suppress_outliers=true) :
+                                Gadfly.Geom.boxplot
+                        ) :
+                        _gadfly_invoke(
+                            Gadfly.layer,
+                            df,
+                            x=:group,
+                            y=:value,
+                            variant == :boxplot_points ?
+                                _gadfly_invoke(Gadfly.Geom.boxplot; suppress_outliers=true) :
+                                Gadfly.Geom.boxplot
+                        )
         push!(elements, boxplot_layer)
 
         if variant == :boxplot_points
             points_layer = use_color ?
-                           _gadfly_invoke(Gadfly.layer, df, x=:group, y=:value, color=:group, Gadfly.Geom.beeswarm) :
-                           _gadfly_invoke(Gadfly.layer, df, x=:group, y=:value, Gadfly.Geom.beeswarm)
+                           _gadfly_invoke(
+                               Gadfly.layer,
+                               df,
+                               x=:group,
+                               y=:value,
+                               color=:group,
+                               _gadfly_invoke(
+                                   Gadfly.Theme;
+                                   default_color=point_palette[1],
+                                   discrete_color_scale=_gadfly_invoke(Gadfly.Scale.color_discrete_manual, point_palette...),
+                                   point_size=0.65 * Gadfly.mm,
+                                   highlight_width=0.35 * Gadfly.mm,
+                                   discrete_highlight_color=_->outline_color,
+                                   key_position=:none
+                               ),
+                               _gadfly_invoke(Gadfly.Geom.beeswarm; padding=0.02 * Gadfly.mm)
+                           ) :
+                           _gadfly_invoke(
+                               Gadfly.layer,
+                               df,
+                               x=:group,
+                               y=:value,
+                               _gadfly_invoke(
+                                   Gadfly.Theme;
+                                   default_color=point_palette[1],
+                                   point_size=0.65 * Gadfly.mm,
+                                   highlight_width=0.35 * Gadfly.mm,
+                                   discrete_highlight_color=_->outline_color,
+                                   key_position=:none
+                               ),
+                               _gadfly_invoke(Gadfly.Geom.beeswarm; padding=0.02 * Gadfly.mm)
+                           )
             push!(elements, points_layer)
         end
 
