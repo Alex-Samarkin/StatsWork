@@ -84,8 +84,8 @@ function _resolve_plot_palette(name::Symbol)
         ])
     elseif name == :contrast
         return palette([
-            :black,
             :dodgerblue3,
+            :black,
             :firebrick3,
             :darkgreen,
             :darkorange3,
@@ -93,6 +93,7 @@ function _resolve_plot_palette(name::Symbol)
             :deeppink3,
             :gray40
         ])
+
     end
 
     error("Unknown plot palette: $name")
@@ -107,11 +108,11 @@ end
 а потом переопределить только нужные параметры: подписи осей, layout, legend и т.д.
 """
 function default_plot_config(; palette_name::Symbol=:colorful,
-                             width::Int=1900,
-                             aspect_ratio::Tuple{Int, Int}=(16, 9),
-                             dpi::Int=300)
+    width::Int=1900,
+    aspect_ratio::Tuple{Int,Int}=(16, 9),
+    dpi::Int=300)
     height = round(Int, width * aspect_ratio[2] / aspect_ratio[1])
-    return Dict{Symbol, Any}(
+    return Dict{Symbol,Any}(
         :size => (width, height),
         :dpi => dpi,
         :palette => _resolve_plot_palette(palette_name)
@@ -128,7 +129,7 @@ end
 """
 function _render_plot(spec::PlotSpec)
     options = default_plot_config()
-    merge!(options, Dict{Symbol, Any}(spec.options))
+    merge!(options, Dict{Symbol,Any}(spec.options))
     get!(options, :title, spec.title)
 
     if spec.kind == :bar
@@ -174,10 +175,10 @@ function _render_plot(spec::PlotSpec)
         iqr_value = q3 - q1
         lower_fence = q1 - 1.5 * iqr_value
         upper_fence = q3 + 1.5 * iqr_value
-        inside = values[(values .>= lower_fence) .& (values .<= upper_fence)]
+        inside = values[(values.>=lower_fence).&(values.<=upper_fence)]
         whisker_low = isempty(inside) ? minimum(values) : minimum(inside)
         whisker_high = isempty(inside) ? maximum(values) : maximum(inside)
-        outliers = values[(values .< whisker_low) .| (values .> whisker_high)]
+        outliers = values[(values.<whisker_low).|(values.>whisker_high)]
 
         delete!(options, :legend)
         get!(options, :xlim, (0.5, 1.5))
@@ -254,7 +255,7 @@ function _render_plot(spec::PlotSpec)
                 Gadfly.Theme;
                 default_color=palette_colors[1],
                 discrete_color_scale=_gadfly_invoke(Gadfly.Scale.color_discrete_manual, palette_colors...),
-                point_size=2.4 * Gadfly.mm,
+                point_size=1.4 * Gadfly.mm,
                 key_position=(mode == :group ? :right : :none)
             )
         ]
@@ -312,7 +313,7 @@ function _render_plot(spec::PlotSpec)
                     Gadfly.Theme;
                     default_color=palette_colors[1],
                     discrete_color_scale=_gadfly_invoke(Gadfly.Scale.color_discrete_manual, palette_colors...),
-                    point_size=2.4 * Gadfly.mm,
+                    point_size=1.4 * Gadfly.mm,
                     key_position=:right
                 )
             ]
@@ -384,29 +385,31 @@ function _render_plot(spec::PlotSpec)
             _gadfly_invoke(Gadfly.Guide.ylabel, variable_label),
             _gadfly_invoke(
                 Gadfly.Theme;
+                #
+                alphas=[0.45],
                 default_color=palette_colors[1],
                 discrete_color_scale=_gadfly_invoke(Gadfly.Scale.color_discrete_manual, palette_colors...),
-                point_size=2.2 * Gadfly.mm,
+                point_size=1.4 * Gadfly.mm,
                 key_position=key_position
             )
         ]
 
         if variant == :boxplot_violin
             violin_layer = use_color ?
-                _gadfly_invoke(Gadfly.layer, df, x=:group, y=:value, color=:group, Gadfly.Geom.violin) :
-                _gadfly_invoke(Gadfly.layer, df, x=:group, y=:value, Gadfly.Geom.violin)
+                           _gadfly_invoke(Gadfly.layer, df, x=:group, y=:value, color=:group, Gadfly.Geom.violin) :
+                           _gadfly_invoke(Gadfly.layer, df, x=:group, y=:value, Gadfly.Geom.violin)
             push!(elements, violin_layer)
         end
 
         boxplot_layer = use_color ?
-            _gadfly_invoke(Gadfly.layer, df, x=:group, y=:value, color=:group, Gadfly.Geom.boxplot) :
-            _gadfly_invoke(Gadfly.layer, df, x=:group, y=:value, Gadfly.Geom.boxplot)
+                        _gadfly_invoke(Gadfly.layer, df, x=:group, y=:value, color=:group, Gadfly.Geom.boxplot) :
+                        _gadfly_invoke(Gadfly.layer, df, x=:group, y=:value, Gadfly.Geom.boxplot)
         push!(elements, boxplot_layer)
 
         if variant == :boxplot_points
             points_layer = use_color ?
-                _gadfly_invoke(Gadfly.layer, df, x=:group, y=:value, color=:group, Gadfly.Geom.beeswarm) :
-                _gadfly_invoke(Gadfly.layer, df, x=:group, y=:value, Gadfly.Geom.beeswarm)
+                           _gadfly_invoke(Gadfly.layer, df, x=:group, y=:value, color=:group, Gadfly.Geom.beeswarm) :
+                           _gadfly_invoke(Gadfly.layer, df, x=:group, y=:value, Gadfly.Geom.beeswarm)
             push!(elements, points_layer)
         end
 
@@ -418,7 +421,7 @@ function _render_plot(spec::PlotSpec)
             _gadfly_invoke(
                 Gadfly.Theme;
                 default_color="#b22222",
-                point_size=3.0 * Gadfly.mm,
+                point_size=1.4 * Gadfly.mm,
                 key_position=:none
             ),
             Gadfly.Geom.point
@@ -475,7 +478,7 @@ plot4(result::BaseAnalysisResult) = render_result_plot(result, 4)
 Если `which` не задан, возвращаются все графики результата.
 Если задан номер, возвращается только один выбранный график.
 """
-function plot_report(result::BaseAnalysisResult; which::Union{Nothing, Int}=nothing)
+function plot_report(result::BaseAnalysisResult; which::Union{Nothing,Int}=nothing)
     return which === nothing ? render_result_plots(result) : render_result_plot(result, which)
 end
 
