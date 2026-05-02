@@ -32,6 +32,7 @@ include("Analyses/DataTransform/auto_recode_analysis.jl")
 include("Analyses/Exploratory/descriptive_stats_analysis.jl")
 include("Analyses/Exploratory/single_variable_descriptive_analysis.jl")
 include("Analyses/Exploratory/single_variable_interval_estimates_analysis.jl")
+include("Analyses/Exploratory/normality_analysis.jl")
 include("Analyses/Graphics/scatterplot_analysis.jl")
 include("Analyses/Graphics/histogram_analysis.jl")
 include("Analyses/Graphics/boxplot_analysis.jl")
@@ -90,6 +91,7 @@ export Workbook,
        DescriptiveStatsAnalysis,
        SingleVariableDescriptiveAnalysis,
        SingleVariableIntervalEstimatesAnalysis,
+       NormalityAnalysis,
        ScatterplotAnalysis,
        HistogramAnalysis,
        BoxplotAnalysis,

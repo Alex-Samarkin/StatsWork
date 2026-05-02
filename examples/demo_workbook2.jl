@@ -49,6 +49,14 @@ weight_analysis = SW.SingleVariableDescriptiveAnalysis(
 )
 weight_result = SW.analyze(wb, weight_analysis)
 
+height_normality_analysis = SW.NormalityAnalysis(
+    :height_cm;
+    P=0.95,
+    ks_corrected_simulations=500,
+    palette_name=:colorful
+)
+height_normality_result = SW.analyze(wb, height_normality_analysis)
+
 height_scatter_analysis = SW.ScatterplotAnalysis(:height_cm)
 height_scatter_result = SW.analyze(wb, height_scatter_analysis)
 
@@ -71,6 +79,8 @@ println("\n=== Height descriptive summary ===")
 show(SW.to_table(height_result); allrows=true, allcols=true)
 println("\n=== Weight descriptive summary ===")
 show(SW.to_table(weight_result); allrows=true, allcols=true)
+println("\n=== Height normality tests ===")
+show(SW.to_table(height_normality_result; table=:normality_tests); allrows=true, allcols=true)
 println("\n=== Height scatter summary ===")
 show(SW.to_table(height_scatter_result); allrows=true, allcols=true)
 println("\n=== Weight-by-sex scatter summary ===")
@@ -91,6 +101,11 @@ height_qq_plot = SW.plot3(height_result)
 weight_histogram_plot = SW.plot1(weight_result)
 weight_histogram_boxplot = SW.plot2(weight_result)
 weight_qq_plot = SW.plot3(weight_result)
+
+height_normality_histogram_plot = SW.plot1(height_normality_result)
+height_normality_cdf_plot = SW.plot2(height_normality_result)
+height_normality_cumulative_plot = SW.plot3(height_normality_result)
+height_normality_qq_plot = SW.plot4(height_normality_result)
 
 height_scatter_plot = SW.plot1(height_scatter_result)
 weight_by_sex_scatter_plot = SW.plot1(weight_by_sex_scatter_result)

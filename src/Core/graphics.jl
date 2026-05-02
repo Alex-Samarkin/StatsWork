@@ -226,6 +226,27 @@ function _render_plot(spec::PlotSpec)
             plot!(p, line_x, line_y; color=:black, linewidth=2, label="")
         end
         return p
+    elseif spec.kind == :cdf_compare
+        x_empirical = Float64.(get(spec.payload, :x_empirical, Real[]))
+        y_empirical = Float64.(get(spec.payload, :y_empirical, Real[]))
+        x_theoretical = Float64.(get(spec.payload, :x_theoretical, Real[]))
+        y_theoretical = Float64.(get(spec.payload, :y_theoretical, Real[]))
+
+        p = plot(x_theoretical, y_theoretical; color=:black, linewidth=3, label="Normal CDF", options...)
+        if !isempty(x_empirical)
+            plot!(p, x_empirical, y_empirical; seriestype=:steppost, linewidth=2, label="Empirical CDF")
+        end
+        return p
+    elseif spec.kind == :cumhist_normal_cdf
+        values = Float64.(get(spec.payload, :values, Real[]))
+        x_theoretical = Float64.(get(spec.payload, :x_theoretical, Real[]))
+        y_theoretical = Float64.(get(spec.payload, :y_theoretical, Real[]))
+
+        p = histogram(values; cumulative=true, normalize=:probability, alpha=0.45, label="Cumulative histogram", options...)
+        if !isempty(x_theoretical)
+            plot!(p, x_theoretical, y_theoretical; color=:black, linewidth=3, label="Normal CDF")
+        end
+        return p
     elseif spec.kind == :confidence_interval
         lower = get(spec.payload, :lower, missing)
         upper = get(spec.payload, :upper, missing)
